@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getAdminMessaging } from "@/lib/firebase-admin";
+import { firebaseMessaging } from "@/lib/firebase-admin";
 
 export async function POST(request: Request) {
   try {
@@ -119,8 +119,7 @@ export async function POST(request: Request) {
       },
     };
 
-    const messaging = getAdminMessaging();
-    const messageId = await messaging.send(messagePayload);
+    const messageId = await firebaseMessaging.send(messagePayload);
 
     // 6. Update alert status to delivered
     await supabase
