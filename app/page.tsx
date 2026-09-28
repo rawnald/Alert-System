@@ -33,53 +33,75 @@ export default function Home() {
   const [messageStatus, setMessageStatus] = useState("");
 
   async function registerDevice() {
-    if (!selectedRecipient) {
-      setMessageStatus(
-        "Please select a recipient first."
+  if (!selectedRecipient) {
+    setMessageStatus(
+      "Please select a recipient first."
+    );
+    return;
+  }
+
+  try {
+    setMessageStatus(
+      "Requesting notification permission..."
+    );
+
+    const token =
+      await registerForPushNotifications();
+
+    console.log("FCM TOKEN:", token);
+
+    if (!token) {
+      throw new Error(
+        "Firebase did not return a device token."
       );
-      return;
     }
 
-    try {
-      setMessageStatus(
-        "Requesting notification permission..."
+    setMessageStatus(
+      "Saving device registration..."
+    );
+
+    const { error } = await supabase
+      .from("recipients")
+      .update({
+        fcm_token: token,
+        device_platform: "web",
+        device_registered_at:
+          new Date().toISOString(),
+      })
+      .eq("id", selectedRecipient);
+
+    if (error) {
+      console.error(
+        "Supabase registration error:",
+        error
       );
 
-      const token =
-        await registerForPushNotifications();
-
-      if (!token) {
-        throw new Error(
-          "Could not obtain Firebase device token."
-        );
-      }
-
-      const { error } = await supabase
-        .from("recipients")
-        .update({
-          fcm_token: token,
-          device_platform: "web",
-          device_registered_at:
-            new Date().toISOString(),
-        })
-        .eq("id", selectedRecipient);
-
-      if (error) {
-        throw error;
-      }
-
-      setMessageStatus(
-        "✅ Device registered successfully."
+      throw new Error(
+        `Supabase error: ${error.message}`
       );
+    }
 
-    } catch (error) {
-      console.error(error);
+    setMessageStatus(
+      "✅ Device registered successfully."
+    );
 
+  } catch (error) {
+    console.error(
+      "DEVICE REGISTRATION ERROR:",
+      error
+    );
+
+    if (error instanceof Error) {
       setMessageStatus(
-        "❌ Failed to register this device."
+        `❌ ${error.message}`
+      );
+    } else {
+      setMessageStatus(
+        "❌ Unknown device registration error."
       );
     }
   }
+}
 
   useEffect(() => {
     loadRecipients();
