@@ -106,9 +106,13 @@ export async function POST(request: Request) {
         notification: {
           title: alertTitle,
           body: alert.message,
-          icon: "/next.svg",
+          icon: "/alert-icon.png",
+          badge: "/alert-icon.png",
           requireInteraction: true,
           vibrate: [500, 250, 500, 250, 500, 250, 500],
+        },
+        fcmOptions: {
+          link: "/alert",
         },
       },
     };

@@ -9,22 +9,22 @@ const firebaseConfig = {
   projectId: "phone-alert-system",
   storageBucket: "phone-alert-system.firebasestorage.app",
   messagingSenderId: "754906114814",
-  appId: "1:754906114814:android:a8f54eaf528fee090e93af",
+  appId: "1:754906114814:web:860e5ae2224b1c0c0e93af",
 };
 
 firebase.initializeApp(firebaseConfig);
 
 const messaging = firebase.messaging();
 
-// Handle background messages
+// Handle background messages via Firebase SDK
 messaging.onBackgroundMessage((payload) => {
   console.log("[firebase-messaging-sw.js] Received background message: ", payload);
 
   const title = payload.notification?.title || payload.data?.title || "🚨 EMERGENCY ALERT";
   const options = {
-    body: payload.notification?.body || payload.data?.body || "An emergency alert has been issued.",
-    icon: payload.notification?.icon || "/next.svg",
-    badge: "/next.svg",
+    body: payload.notification?.body || payload.data?.body || payload.data?.message || "An emergency alert has been issued.",
+    icon: "/alert-icon.png",
+    badge: "/alert-icon.png",
     vibrate: [500, 250, 500, 250, 500, 250, 500],
     data: payload.data || {},
     requireInteraction: true,
@@ -34,7 +34,32 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(title, options);
 });
 
-// Handle notification click to bring app to foreground
+// Fallback listener for raw Web Push events
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  try {
+    const payload = event.data.json();
+    const title = payload.notification?.title || payload.data?.title || "🚨 EMERGENCY ALERT";
+    const body = payload.notification?.body || payload.data?.body || payload.data?.message || "Emergency alert issued!";
+
+    event.waitUntil(
+      self.registration.showNotification(title, {
+        body,
+        icon: "/alert-icon.png",
+        badge: "/alert-icon.png",
+        vibrate: [500, 250, 500, 250, 500, 250, 500],
+        requireInteraction: true,
+        tag: "phone-alert",
+        data: payload.data || {},
+      })
+    );
+  } catch (err) {
+    console.error("Push event error:", err);
+  }
+});
+
+// Handle notification click to open /alert page
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
