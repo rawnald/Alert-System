@@ -134,37 +134,91 @@ export default function Home() {
     e.preventDefault();
 
     if (!selectedRecipient) {
-      setMessageStatus("Please select a recipient.");
+      setMessageStatus(
+        "Please select a recipient."
+      );
       return;
     }
 
     if (!message.trim()) {
-      setMessageStatus("Please enter an alert message.");
+      setMessageStatus(
+        "Please enter an alert message."
+      );
       return;
     }
 
     setLoading(true);
-    setMessageStatus("");
+    setMessageStatus("Creating alert...");
 
-    const { error } = await supabase.from("alerts").insert({
-      recipient_id: selectedRecipient,
-      message,
-      alert_type: alertType,
-      vibration_pattern: vibrationPattern,
-      duration_seconds: duration,
-      status: "sent",
-    });
+    try {
+      // 1. Create alert in Supabase
+      const { data: alert, error } =
+        await supabase
+          .from("alerts")
+          .insert({
+            recipient_id: selectedRecipient,
+            message,
+            alert_type: alertType,
+            vibration_pattern:
+              vibrationPattern,
+            duration_seconds: duration,
+            status: "pending",
+          })
+          .select()
+          .single();
 
-    if (error) {
-      console.error(error);
-      setMessageStatus("Failed to send alert.");
-    } else {
+      if (error || !alert) {
+        throw new Error(
+          error?.message ||
+          "Could not create alert."
+        );
+      }
+
+      // 2. Send through Firebase
       setMessageStatus(
-        "🚨 Alert created successfully."
+        "Sending notification..."
       );
-    }
 
-    setLoading(false);
+      const response = await fetch(
+        "/api/send-alert",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            alertId: alert.id,
+          }),
+        }
+      );
+
+      const result =
+        await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.error ||
+          "Failed to send notification."
+        );
+      }
+
+      setMessageStatus(
+        `🚨 Alert sent to ${result.recipient.name}`
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      setMessageStatus(
+        error instanceof Error
+          ? `❌ ${error.message}`
+          : "❌ Failed to send alert."
+      );
+
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

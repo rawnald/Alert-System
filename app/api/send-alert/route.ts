@@ -5,11 +5,11 @@ import { firebaseMessaging } from "@/lib/firebase-admin";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { alert_id } = body;
+    const alert_id = body.alertId || body.alert_id;
 
     if (!alert_id) {
       return NextResponse.json(
-        { error: "alert_id is required" },
+        { error: "alertId is required" },
         { status: 400 }
       );
     }
@@ -134,7 +134,11 @@ export async function POST(request: Request) {
         success: true,
         messageId,
         alert_id,
-        recipient: recipient.name,
+        recipient: {
+          id: recipient.id,
+          name: recipient.name,
+          phone_number: recipient.phone_number,
+        },
       },
       { status: 200 }
     );
