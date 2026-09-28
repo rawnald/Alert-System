@@ -37,32 +37,38 @@ export async function requestFcmToken(): Promise<string | null> {
   try {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
-      console.warn("Notification permission was not granted:", permission);
-      return null;
+      throw new Error(
+        `Notification permission was ${permission}. Please allow notifications in your browser.`
+      );
     }
 
     const messaging = await getFirebaseMessaging();
     if (!messaging) {
-      return null;
+      throw new Error("Firebase Messaging is not supported or failed to initialize in this browser.");
     }
 
-    // Ensure service worker is registered
-    const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    // Ensure service worker is registered and active
+    await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    const registration = await navigator.serviceWorker.ready;
 
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
     if (!vapidKey) {
-      console.error("NEXT_PUBLIC_FIREBASE_VAPID_KEY is not set in environment variables.");
+      throw new Error("NEXT_PUBLIC_FIREBASE_VAPID_KEY is missing from environment variables.");
     }
 
     const token = await getToken(messaging, {
-      vapidKey: vapidKey || undefined,
+      vapidKey,
       serviceWorkerRegistration: registration,
     });
 
-    return token || null;
+    if (!token) {
+      throw new Error("Firebase getToken returned an empty token.");
+    }
+
+    return token;
   } catch (error) {
     console.error("Error retrieving FCM registration token:", error);
-    return null;
+    throw error;
   }
 }
 
