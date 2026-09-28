@@ -84,7 +84,9 @@ export async function POST(request: Request) {
         ? "🚨 EARTHQUAKE WARNING"
         : `🚨 ${(alert.alert_type || "EMERGENCY").toUpperCase()} ALERT`;
 
-    const messagePayload = {
+    const isNativeAndroid = recipient.device_platform === "android";
+
+    const messagePayload: any = {
       token: recipient.fcm_token,
       notification: {
         title: alertTitle,
@@ -109,15 +111,18 @@ export async function POST(request: Request) {
           vibrate: [500, 250, 500, 250, 500, 250, 500],
         },
       },
-      android: {
-        priority: "high" as const,
+    };
+
+    if (isNativeAndroid) {
+      messagePayload.android = {
+        priority: "high",
         notification: {
           channelId: "emergency_alerts",
-          priority: "max" as const,
+          priority: "max",
           defaultVibrateTimings: true,
         },
-      },
-    };
+      };
+    }
 
     const messageId = await firebaseMessaging.send(messagePayload);
 
