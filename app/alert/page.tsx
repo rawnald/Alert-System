@@ -1,37 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function AlertPage() {
-  const [active, setActive] =
-    useState(true);
+  const [active, setActive] = useState(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (!("vibrate" in navigator)) {
-      return;
+    // 1. Play Alarm Sound
+    try {
+      const audio = new Audio("/sounds/alarm.mp3");
+      audio.loop = true;
+      audioRef.current = audio;
+      audio.play().catch((err) => {
+        // Autoplay may be restricted until user interacts with the page
+        console.warn("Audio playback waiting for user gesture:", err);
+      });
+    } catch (err) {
+      console.error("Audio initialization error:", err);
     }
 
-    const pattern = [
-      500,
-      200,
-      500,
-      200,
-      1000,
-      500,
-      500,
-      200,
-      500,
-    ];
-
-    navigator.vibrate(pattern);
+    // 2. Trigger Vibration Pattern
+    if ("vibrate" in navigator) {
+      const pattern = [
+        500,
+        200,
+        500,
+        200,
+        1000,
+        500,
+        500,
+        200,
+        500,
+      ];
+      navigator.vibrate(pattern);
+    }
 
     return () => {
-      navigator.vibrate(0);
+      navigator.vibrate?.(0);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     };
   }, []);
 
   function stopAlert() {
     navigator.vibrate?.(0);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
     setActive(false);
   }
 
