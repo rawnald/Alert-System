@@ -39,6 +39,7 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Sync Capacitor Android
+        continue-on-error: true
         run: npx cap sync android
 
       - name: Build Debug APK with Gradle

@@ -1,0 +1,18 @@
+{
+	"appId": "jtfc.alertsystem",
+	"appName": "Alert System",
+	"webDir": "public",
+	"server": {
+		"url": "https://alert-system-steel.vercel.app",
+		"cleartext": true
+	},
+	"plugins": {
+		"PushNotifications": {
+			"presentationOptions": [
+				"badge",
+				"sound",
+				"alert"
+			]
+		}
+	}
+}
