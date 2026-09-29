@@ -29,9 +29,11 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Accept Android SDK Licenses
+      - name: Ensure Google Services JSON
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          if [ -f "google-services.json" ]; then
+            cp -f google-services.json android/app/google-services.json
+          fi
 
       - name: Sync Capacitor Android
         run: npx cap sync android
