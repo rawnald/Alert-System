@@ -35,6 +35,9 @@ jobs:
             cp -f google-services.json android/app/google-services.json
           fi
 
+      - name: Grant Execute Permission to Gradlew
+        run: chmod +x android/gradlew
+
       - name: Sync Capacitor Android
         run: npx cap sync android
 
