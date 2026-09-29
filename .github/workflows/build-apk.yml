@@ -20,9 +20,6 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -32,11 +29,9 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Copy Google Services JSON
+      - name: Accept Android SDK Licenses
         run: |
-          if [ -f "google-services.json" ]; then
-            cp google-services.json android/app/google-services.json
-          fi
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Sync Capacitor Android
         run: npx cap sync android
@@ -45,7 +40,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
