@@ -117,16 +117,18 @@ export async function POST(request: Request) {
       },
     };
 
-    if (isNativeAndroid) {
-      messagePayload.android = {
-        priority: "high",
-        notification: {
-          channelId: "emergency_alerts",
-          priority: "max",
-          defaultVibrateTimings: true,
-        },
-      };
-    }
+    // 5. Always include Android emergency configuration for native devices
+    messagePayload.android = {
+      priority: "high",
+      notification: {
+        channelId: "emergency_siren_channel",
+        priority: "max",
+        sound: "alarm",
+        defaultSound: false,
+        defaultVibrateTimings: true,
+        visibility: "public",
+      },
+    };
 
     const messageId = await firebaseMessaging.send(messagePayload);
 

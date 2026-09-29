@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import {
   registerForPushNotifications,
   isNative,
+  onForegroundMessage,
 } from "@/lib/firebase-messaging";
 
 type Recipient = {
@@ -106,6 +107,20 @@ export default function Home() {
 
   useEffect(() => {
     loadRecipients();
+
+    let unsubscribe: (() => void) | null = null;
+    onForegroundMessage((payload) => {
+      console.log("Incoming alert received:", payload);
+      if (typeof window !== "undefined") {
+        window.location.href = "/alert";
+      }
+    }).then((unsub) => {
+      unsubscribe = unsub;
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   async function loadRecipients() {

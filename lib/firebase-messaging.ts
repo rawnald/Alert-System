@@ -53,15 +53,32 @@ export async function requestFcmToken(): Promise<string | null> {
 
       // Create high-urgency emergency channel on Android
       await PushNotifications.createChannel({
-        id: "emergency_alerts",
-        name: "Emergency Alerts",
-        description: "Critical earthquake and emergency sirens",
+        id: "emergency_siren_channel",
+        name: "🚨 Emergency Siren Alerts",
+        description: "Critical emergency alarm sirens and vibration",
         importance: 5,
         visibility: 1,
         sound: "alarm",
         vibration: true,
         lights: true,
         lightColor: "#FF0000",
+      });
+
+      // Navigate to /alert when notification is tapped
+      PushNotifications.removeAllListeners();
+
+      PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+        console.log("Push action performed:", action);
+        if (typeof window !== "undefined") {
+          window.location.href = "/alert";
+        }
+      });
+
+      PushNotifications.addListener("pushNotificationReceived", (notification) => {
+        console.log("Push notification received:", notification);
+        if (typeof window !== "undefined") {
+          window.location.href = "/alert";
+        }
       });
 
       return new Promise<string>((resolve, reject) => {
