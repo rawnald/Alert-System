@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "754906114814",
+    "project_id": "phone-alert-system",
+    "storage_bucket": "phone-alert-system.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:754906114814:android:a8f54eaf528fee090e93af",
+        "android_client_info": {
+          "package_name": "jtfc.alertsystem"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDNM-BcOLk54QLfdwOfF3Y1cx9GJoKJ5jQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   registerForPushNotifications,
+  isNative,
 } from "@/lib/firebase-messaging";
 
 type Recipient = {
@@ -64,7 +65,7 @@ export default function Home() {
       .from("recipients")
       .update({
         fcm_token: token,
-        device_platform: "web",
+        device_platform: isNative() ? "android" : "web",
         device_registered_at:
           new Date().toISOString(),
       })

@@ -1,13 +1,19 @@
 import { getMessaging, getToken, onMessage, isSupported, MessagePayload, Messaging } from "firebase/messaging";
 import { firebaseApp } from "./supabase";
+import { Capacitor } from "@capacitor/core";
+import { PushNotifications } from "@capacitor/push-notifications";
 
 let messagingInstance: Messaging | null = null;
+
+export function isNative(): boolean {
+  return typeof window !== "undefined" && Capacitor.isNativePlatform();
+}
 
 /**
  * Initializes and returns the Firebase Messaging instance if supported in current environment.
  */
 export async function getFirebaseMessaging(): Promise<Messaging | null> {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || isNative()) {
     return null;
   }
 
@@ -25,13 +31,57 @@ export async function getFirebaseMessaging(): Promise<Messaging | null> {
 }
 
 /**
- * Requests notification permission from the user, registers the service worker,
- * and retrieves the device's FCM registration token.
+ * Requests notification permission from the user, registers the device,
+ * and retrieves the device's FCM registration token (supports both Native Android APK and Web).
  */
 export async function requestFcmToken(): Promise<string | null> {
-  if (typeof window === "undefined" || !("Notification" in window)) {
-    console.warn("Notifications are not supported in this environment.");
+  if (typeof window === "undefined") {
     return null;
+  }
+
+  // --- NATIVE ANDROID APK FLOW ---
+  if (Capacitor.isNativePlatform()) {
+    try {
+      let permStatus = await PushNotifications.checkPermissions();
+      if (permStatus.receive === "prompt") {
+        permStatus = await PushNotifications.requestPermissions();
+      }
+
+      if (permStatus.receive !== "granted") {
+        throw new Error("Push notification permission was denied on this Android device.");
+      }
+
+      // Create high-urgency emergency channel on Android
+      await PushNotifications.createChannel({
+        id: "emergency_alerts",
+        name: "Emergency Alerts",
+        description: "Critical earthquake and emergency sirens",
+        importance: 5,
+        visibility: 1,
+        sound: "alarm",
+        vibration: true,
+        lights: true,
+        lightColor: "#FF0000",
+      });
+
+      return new Promise<string>((resolve, reject) => {
+        PushNotifications.addListener("registration", (token) => {
+          resolve(token.value);
+        });
+        PushNotifications.addListener("registrationError", (err) => {
+          reject(new Error(`Native Android registration failed: ${err.error}`));
+        });
+        PushNotifications.register();
+      });
+    } catch (err) {
+      console.error("Native push registration error:", err);
+      throw err;
+    }
+  }
+
+  // --- WEB PUSH FLOW ---
+  if (!("Notification" in window)) {
+    throw new Error("Notifications are not supported in this browser.");
   }
 
   try {
@@ -44,10 +94,9 @@ export async function requestFcmToken(): Promise<string | null> {
 
     const messaging = await getFirebaseMessaging();
     if (!messaging) {
-      throw new Error("Firebase Messaging is not supported or failed to initialize in this browser.");
+      throw new Error("Firebase Messaging is not supported in this browser.");
     }
 
-    // Ensure service worker is registered and active
     await navigator.serviceWorker.register("/firebase-messaging-sw.js");
     const registration = await navigator.serviceWorker.ready;
 
@@ -79,13 +128,23 @@ export const registerForPushNotifications = requestFcmToken;
 
 /**
  * Subscribes to foreground push notifications.
- *
- * @param callback Handler called when a push message arrives while the web app is in the foreground.
- * @returns An unsubscribe function, or null if messaging is not supported.
  */
 export async function onForegroundMessage(
-  callback: (payload: MessagePayload) => void
+  callback: (payload: any) => void
 ): Promise<(() => void) | null> {
+  if (isNative()) {
+    const handle = await PushNotifications.addListener("pushNotificationReceived", (notification) => {
+      callback({
+        notification: {
+          title: notification.title,
+          body: notification.body,
+        },
+        data: notification.data,
+      });
+    });
+    return () => handle.remove();
+  }
+
   const messaging = await getFirebaseMessaging();
   if (!messaging) {
     return null;
@@ -93,3 +152,4 @@ export async function onForegroundMessage(
 
   return onMessage(messaging, callback);
 }
+
